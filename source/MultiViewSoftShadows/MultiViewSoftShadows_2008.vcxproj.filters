@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{a108b3c7-3412-422e-b701-d3d9a3a2c155}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Shader Files">
+      <UniqueIdentifier>{5ab8af08-16b6-4c5e-a767-44d410200686}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{f88e6e6c-0f22-4964-ac4c-1cae923495e2}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
+    </Filter>
+    <Filter Include="Media Files">
+      <UniqueIdentifier>{517a3660-135c-4cbe-930f-b9e13b19a24b}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MultiViewSoftShadows.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MultiViewSoftShadows.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="shaders\MVSS_Common.hlsl">
+      <Filter>Source Files\Shader Files</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\MVSS_ForwardRendering.hlsl">
+      <Filter>Source Files\Shader Files</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\MVSS_ShadowMapRendering.hlsl">
+      <Filter>Source Files\Shader Files</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\MVSS_ShadowMapVisualization.hlsl">
+      <Filter>Source Files\Shader Files</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\media\directx.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\..\Media\lichen6.dds">
+      <Filter>Media Files</Filter>
+    </Image>
+    <Image Include="..\..\Media\lichen6_normal.dds">
+      <Filter>Media Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="MultiViewSoftShadows.manifest">
+      <Filter>Resource Files</Filter>
+    </Manifest>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="MultiViewSoftShadows.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\Media\goof_knight1.sdkmesh">
+      <Filter>Media Files</Filter>
+    </None>
+    <None Include="..\..\Media\goof_knight2.sdkmesh">
+      <Filter>Media Files</Filter>
+    </None>
+    <None Include="..\..\Media\goof_knight3.sdkmesh">
+      <Filter>Media Files</Filter>
+    </None>
+    <None Include="..\..\Media\goof_knight4.sdkmesh">
+      <Filter>Media Files</Filter>
+    </None>
+    <None Include="..\..\Media\goof_knight5.sdkmesh">
+      <Filter>Media Files</Filter>
+    </None>
+    <None Include="..\..\Media\goof_knight6.sdkmesh">
+      <Filter>Media Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>
