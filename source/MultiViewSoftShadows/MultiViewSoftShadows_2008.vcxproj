@@ -279,6 +279,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MultiViewSoftShadows.h" />
+    <ClInclude Include="SoftPointLightShadows.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\MVSS_Common.hlsl">
