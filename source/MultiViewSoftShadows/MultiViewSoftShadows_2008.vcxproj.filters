@@ -41,6 +41,9 @@
     <FxCompile Include="shaders\MVSS_ShadowMapVisualization.hlsl">
       <Filter>Source Files\Shader Files</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\pointlight\ShadowCubemapVisualization.hlsl">
+      <Filter>Source Files\Shader Files</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\media\directx.ico">

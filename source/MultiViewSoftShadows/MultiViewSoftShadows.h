@@ -28,13 +28,15 @@
 #define GROUND_PLANE_RADIUS 8.0f
 #define LIGHT_ZFAR 32.0f
 
-// Setting the shadow-map resolution to 512x512.
+// Setting the shadow-map resolution..
 // Any resolution may be used as long as the shadow maps fit in video memory.
-#define SHADOW_MAP_RES 512
+#define SHADOW_MAP_RES 2048
 
 // In this implementation, the number of shadow maps is hard-coded to 28.
 // For changing this value, the Poisson disk and the shaders should be modified accordingly.
 #define SHADOW_MAP_ARRAY_SIZE 28
+
+#include "SoftPointLightShadows.h"
 
 //--------------------------------------------------------------------------------------
 // Textures used for shading
@@ -866,6 +868,7 @@ public:
     void CreateResources(ID3D11Device *pd3dDevice)
     {
         m_ShadowMap.CreateResources(pd3dDevice);
+        m_ShadowCubemap.CreateResources(pd3dDevice);
         m_Textures.CreateResources(pd3dDevice);
         m_Geometry.CreateResources(pd3dDevice);
         m_Shaders.CreateResources(pd3dDevice);
@@ -884,6 +887,7 @@ public:
         m_GlobalCB.ReleaseResources();
         m_ShadowMapCB.ReleaseResources();
         m_ShadowMap.ReleaseResouces();
+        m_ShadowCubemap.ReleaseResouces();
         m_TimestampQueries.ReleaseResouces();
         SAFE_DELETE(m_DepthMRT);
         SAFE_DELETE(m_ColorMRT);
@@ -917,6 +921,7 @@ public:
         //--------------------------------------------------------------------------------------
 
         pd3dImmediateContext->ClearDepthStencilView(m_ShadowMap.pDepthRT->pDSV, D3D11_CLEAR_DEPTH, 1.0, 0);
+        pd3dImmediateContext->ClearDepthStencilView(m_ShadowCubemap.pDepthRT->pDSV, D3D11_CLEAR_DEPTH, 1.0, 0);
 
         // Poisson disk generated with http://www.coderhaus.com/?p=11 and min distance = 0.3
         assert(SHADOW_MAP_ARRAY_SIZE == 28);
@@ -952,6 +957,7 @@ public:
             D3DXVECTOR2(0.4597791f, -0.1513058f)
         };
 
+        // Render spot light shadow map
         for (int LightIndex = 0; LightIndex < SHADOW_MAP_ARRAY_SIZE; ++LightIndex)
         {
             float ViewSpaceJitterX = PoissonDisk28[LightIndex].x * args.LightRadiusWorld;
@@ -960,6 +966,18 @@ public:
             pd3dImmediateContext->UpdateSubresource(m_ShadowMapCB.pBuffer, 0, NULL, &m_ShadowMapCB.CBData, 0, 0);
 
             pd3dImmediateContext->OMSetRenderTargets(0, NULL, m_ShadowMap.pDepthRT->ppDSVs[LightIndex]);
+            RenderShadowMap(pd3dImmediateContext);
+        }
+
+        // Render point light shadow cubemap
+        for (int LightIndex = 0; LightIndex < CUBE_NUM_OF_SIDES; ++LightIndex)
+        {
+            float ViewSpaceJitterX = PoissonDisk28[LightIndex].x * args.LightRadiusWorld;
+            float ViewSpaceJitterY = PoissonDisk28[LightIndex].y * args.LightRadiusWorld;
+            UpdateShadowMapFrustum(ViewSpaceJitterX, ViewSpaceJitterY, LightIndex);
+            pd3dImmediateContext->UpdateSubresource(m_ShadowMapCB.pBuffer, 0, NULL, &m_ShadowMapCB.CBData, 0, 0);
+
+            pd3dImmediateContext->OMSetRenderTargets(0, NULL, m_ShadowCubemap.pDepthRT->ppDSVs[LightIndex]);
             RenderShadowMap(pd3dImmediateContext);
         }
 
@@ -1101,9 +1119,9 @@ public:
 
     // For debugging, visualize the last-rendered shadow map
     void VisualizeShadowMap(ID3D11DeviceContext* pd3dImmediateContext,
-                            ID3D11RenderTargetView* pOutputRTV)
+        ID3D11RenderTargetView* pOutputRTV)
     {
-        pd3dImmediateContext->OMSetRenderTargets(1, &pOutputRTV, NULL );
+        pd3dImmediateContext->OMSetRenderTargets(1, &pOutputRTV, NULL);
         float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
         pd3dImmediateContext->OMSetBlendState(m_States.pNoBlend_BS, BlendFactor, 0xffffffff);
         pd3dImmediateContext->OMSetDepthStencilState(m_States.pNoDepthNoStencil_DS, 0);
@@ -1118,6 +1136,25 @@ public:
         pd3dImmediateContext->Draw(3, 0);
     }
 
+    // For debugging, visualize the last-rendered shadow cubemap
+    void VisualizeShadowCubemap(ID3D11DeviceContext* pd3dImmediateContext,
+        ID3D11RenderTargetView* pOutputRTV)
+    {
+        pd3dImmediateContext->OMSetRenderTargets(1, &pOutputRTV, NULL);
+        float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        pd3dImmediateContext->OMSetBlendState(m_States.pNoBlend_BS, BlendFactor, 0xffffffff);
+        pd3dImmediateContext->OMSetDepthStencilState(m_States.pNoDepthNoStencil_DS, 0);
+
+        pd3dImmediateContext->RSSetViewports(1, &m_Viewport);
+        pd3dImmediateContext->RSSetState(m_States.pNoCull_RS);
+
+        pd3dImmediateContext->VSSetShader(m_Shaders.pFullScreenTriangleVS, NULL, 0);
+        pd3dImmediateContext->PSSetShader(m_Shaders.pVisShadowMapPS, NULL, 0);
+        pd3dImmediateContext->PSSetSamplers(2, 1, &m_States.pPointClampSampler);
+        pd3dImmediateContext->PSSetShaderResources(2, 1, &m_ShadowCubemap.pDepthRT->pSRV);
+        pd3dImmediateContext->Draw(3, 0);
+    }
+
 private:
     // Generate a shadow map by drawing geometry into the current depth-stencil view
     void RenderShadowMap(ID3D11DeviceContext* pd3dImmediateContext)
@@ -1126,7 +1163,7 @@ private:
         float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
         pd3dImmediateContext->OMSetBlendState(m_States.pNoBlend_BS, BlendFactor, 0xffffffff );
 
-        pd3dImmediateContext->RSSetViewports(1, &m_ShadowMap.Viewport);
+        pd3dImmediateContext->RSSetViewports(1, &m_ShadowCubemap.Viewport);
         pd3dImmediateContext->RSSetState(m_States.pDepthBiasBackfaceCull_RS);
 
         pd3dImmediateContext->IASetInputLayout(m_Shaders.pLightRenderIA);
@@ -1259,6 +1296,7 @@ private:
     ShadowMapConstantBuffer m_ShadowMapCB;
     SceneShaders            m_Shaders;
     SceneShadowMap          m_ShadowMap;
+    SceneShadowCubemap      m_ShadowCubemap;
     TimestampQueries        m_TimestampQueries;
 
     SimpleRT *m_DepthMRT;

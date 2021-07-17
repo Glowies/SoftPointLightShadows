@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <limits>
 
+#define USE_POINT_LIGHT 
+
 // Setting the shadow-map resolution..
 // Any resolution may be used as long as the shadow maps fit in video memory.
 #define CUBEMAP_RES 2048
@@ -106,10 +108,10 @@ public:
 //--------------------------------------------------------------------------------------
 // Shadow-map depth-buffer array and viewport
 //--------------------------------------------------------------------------------------
-class SceneCubeShadowMap
+class SceneShadowCubemap
 {
 public:
-    SceneCubeShadowMap()
+    SceneShadowCubemap()
         : pDepthRT(NULL)
     {
     }

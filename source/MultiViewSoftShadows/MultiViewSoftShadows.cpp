@@ -134,7 +134,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
     DXUTInit( true, true, NULL ); // Parse the command line, show msgboxes on error
     DXUTSetCursorSettings( true, true ); // Show the cursor and clip it when in full screen
-    DXUTCreateWindow( L"Multi-View Soft Shadows" );
+    DXUTCreateWindow( L"Soft Point Light Shadows" );
     DXUTCreateDevice(D3D_FEATURE_LEVEL_11_0, true, 1280, 720 );
     DXUTMainLoop(); // Enter into the DXUT render loop
 
@@ -438,7 +438,14 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
 
     // Optionally, visualize the last-rendered shadow map
     const bool ShowShadowMap = g_HUD.GetCheckBox( IDC_TOGGLE_VISDEPTH )->GetChecked();
-    if (ShowShadowMap) g_Scene.VisualizeShadowMap(pd3dImmediateContext, pMainRTV);
+    if (ShowShadowMap) 
+    {
+#if defined(USE_POINT_LIGHT)
+        g_Scene.VisualizeShadowCubemap(pd3dImmediateContext, pMainRTV);
+#else
+        g_Scene.VisualizeShadowMap(pd3dImmediateContext, pMainRTV);
+#endif
+    }
 
     // Restore initial render target and depth/stencil
     pd3dImmediateContext->OMSetRenderTargets(1, &pMainRTV, pMainDSV);
