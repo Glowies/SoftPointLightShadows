@@ -12,12 +12,11 @@
 
 #define USE_POINT_LIGHT 
 
+#include "PointLight_Common.h"
+
 // Setting the shadow-map resolution..
 // Any resolution may be used as long as the shadow maps fit in video memory.
 #define CUBEMAP_RES 2048
-
-// Number of sides constant for cubemap
-#define CUBE_NUM_OF_SIDES 6
 
 
 //--------------------------------------------------------------------------------------

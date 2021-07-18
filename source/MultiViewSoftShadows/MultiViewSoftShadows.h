@@ -525,8 +525,10 @@ public:
     ID3D11PixelShader *pGBufferFillCharacterPS;
     ID3D11InputLayout *pLightRenderIA;
     ID3D11VertexShader *pRenderShadowMapVS;
-    ID3D11VertexShader *pFullScreenTriangleVS;
-    ID3D11PixelShader *pVisShadowMapPS;
+    ID3D11VertexShader* pFullScreenTriangleVS;
+    ID3D11PixelShader* pVisShadowMapPS;
+    ID3D11VertexShader* pCubemapFullScreenTriangleVS;
+    ID3D11PixelShader* pVisShadowCubemapPS;
 
     SceneShaders()
         : pEyeRenderIA(NULL)
@@ -540,6 +542,8 @@ public:
         , pRenderShadowMapVS(NULL)
         , pFullScreenTriangleVS(NULL)
         , pVisShadowMapPS(NULL)
+        , pCubemapFullScreenTriangleVS(NULL)
+        , pVisShadowCubemapPS(NULL)
     {
     }
 
@@ -586,14 +590,25 @@ public:
         V( pd3dDevice->CreateInputLayout(InputLayoutDesc, NumElements, pBlob->GetBufferPointer(), pBlob->GetBufferSize(), &pLightRenderIA) );
         pBlob->Release();
 
-        V( DXUTFindDXSDKMediaFileCch( ShaderPath, MAX_PATH, L"Shaders\\MVSS_ShadowMapVisualization.hlsl" ) );
+        V(DXUTFindDXSDKMediaFileCch(ShaderPath, MAX_PATH, L"Shaders\\MVSS_ShadowMapVisualization.hlsl"));
 
-        V( CompileShaderFromFile(ShaderPath, "FullScreenTriangleVS", "vs_5_0", &pBlob ) );
-        V( pd3dDevice->CreateVertexShader((DWORD*)pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &pFullScreenTriangleVS) );
+        V(CompileShaderFromFile(ShaderPath, "FullScreenTriangleVS", "vs_5_0", &pBlob));
+        V(pd3dDevice->CreateVertexShader((DWORD*)pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &pFullScreenTriangleVS));
         pBlob->Release();
 
-        V( CompileShaderFromFile(ShaderPath, "VisShadowMapPS", "ps_5_0", &pBlob ) );
-        V( pd3dDevice->CreatePixelShader((DWORD*)pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &pVisShadowMapPS) );
+        V(CompileShaderFromFile(ShaderPath, "VisShadowMapPS", "ps_5_0", &pBlob));
+        V(pd3dDevice->CreatePixelShader((DWORD*)pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &pVisShadowMapPS));
+        pBlob->Release();
+
+        // Load point light visualization shaders
+        V(DXUTFindDXSDKMediaFileCch(ShaderPath, MAX_PATH, L"Shaders\\pointlight\\ShadowCubemapVisualization.hlsl"));
+
+        V(CompileShaderFromFile(ShaderPath, "CubemapFullScreenTriangleVS", "vs_5_0", &pBlob));
+        V(pd3dDevice->CreateVertexShader((DWORD*)pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &pCubemapFullScreenTriangleVS));
+        pBlob->Release();
+
+        V(CompileShaderFromFile(ShaderPath, "VisShadowCubemapPS", "ps_5_0", &pBlob));
+        V(pd3dDevice->CreatePixelShader((DWORD*)pBlob->GetBufferPointer(), pBlob->GetBufferSize(), NULL, &pVisShadowCubemapPS));
         pBlob->Release();
     }
 
@@ -610,6 +625,8 @@ public:
         SAFE_RELEASE(pRenderShadowMapVS);
         SAFE_RELEASE(pFullScreenTriangleVS);
         SAFE_RELEASE(pVisShadowMapPS);
+        SAFE_RELEASE(pCubemapFullScreenTriangleVS);
+        SAFE_RELEASE(pVisShadowCubemapPS);
     }
 
     HRESULT CompileShaderFromFile( WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut )
@@ -1148,8 +1165,8 @@ public:
         pd3dImmediateContext->RSSetViewports(1, &m_Viewport);
         pd3dImmediateContext->RSSetState(m_States.pNoCull_RS);
 
-        pd3dImmediateContext->VSSetShader(m_Shaders.pFullScreenTriangleVS, NULL, 0);
-        pd3dImmediateContext->PSSetShader(m_Shaders.pVisShadowMapPS, NULL, 0);
+        pd3dImmediateContext->VSSetShader(m_Shaders.pCubemapFullScreenTriangleVS, NULL, 0);
+        pd3dImmediateContext->PSSetShader(m_Shaders.pVisShadowCubemapPS, NULL, 0);
         pd3dImmediateContext->PSSetSamplers(2, 1, &m_States.pPointClampSampler);
         pd3dImmediateContext->PSSetShaderResources(2, 1, &m_ShadowCubemap.pDepthRT->pSRV);
         pd3dImmediateContext->Draw(3, 0);
@@ -1163,7 +1180,7 @@ private:
         float BlendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
         pd3dImmediateContext->OMSetBlendState(m_States.pNoBlend_BS, BlendFactor, 0xffffffff );
 
-        pd3dImmediateContext->RSSetViewports(1, &m_ShadowCubemap.Viewport);
+        pd3dImmediateContext->RSSetViewports(1, &m_ShadowMap.Viewport);
         pd3dImmediateContext->RSSetState(m_States.pDepthBiasBackfaceCull_RS);
 
         pd3dImmediateContext->IASetInputLayout(m_Shaders.pLightRenderIA);
