@@ -989,9 +989,7 @@ public:
         // Render point light shadow cubemap
         for (int LightIndex = 0; LightIndex < CUBE_NUM_OF_SIDES; ++LightIndex)
         {
-            float ViewSpaceJitterX = PoissonDisk28[LightIndex].x * args.LightRadiusWorld;
-            float ViewSpaceJitterY = PoissonDisk28[LightIndex].y * args.LightRadiusWorld;
-            UpdateShadowMapFrustum(ViewSpaceJitterX, ViewSpaceJitterY, LightIndex);
+            UpdateShadowCubemapFrustum(LightIndex);
             pd3dImmediateContext->UpdateSubresource(m_ShadowMapCB.pBuffer, 0, NULL, &m_ShadowMapCB.CBData, 0, 0);
 
             pd3dImmediateContext->OMSetRenderTargets(0, NULL, m_ShadowCubemap.pDepthRT->ppDSVs[LightIndex]);
@@ -1195,6 +1193,7 @@ private:
         pd3dImmediateContext->PSSetShader(NULL, NULL, 0);
 
         m_Geometry.DrawCharacters(pd3dImmediateContext);
+        m_Geometry.DrawPlane(pd3dImmediateContext);
     }
 
     // Transform the vertices of BBox1 and extend BBox2 accordingly
@@ -1215,6 +1214,87 @@ private:
                 BBox2[1][j] = std::max(BBox2[1][j], v1[j]);
             }
         }
+    }
+
+    // Compute the matrices for rendering from the current light's point of view
+    void UpdateShadowCubemapFrustum(UINT LightIndex)
+    {
+        D3DXMATRIX LightWorld = m_LightWorld;
+        D3DXMATRIX LightView = m_LightView;
+
+        D3DXVECTOR3 FaceDirection = D3DXVECTOR3(0, 0, 0);
+        D3DXVECTOR3 Up = D3DXVECTOR3(0, 1, 0);
+
+        switch (LightIndex) {
+            case CUBE_SIDE_POS_X:
+                FaceDirection = D3DXVECTOR3(1, 0, 0);
+                break;
+            case CUBE_SIDE_NEG_X:
+                FaceDirection = D3DXVECTOR3(-1, 0, 0);
+                break;
+            case CUBE_SIDE_POS_Y:
+                FaceDirection = D3DXVECTOR3(0, 1, 0);
+                Up = D3DXVECTOR3(0, 0, -1);
+                break;
+            case CUBE_SIDE_NEG_Y:
+                FaceDirection = D3DXVECTOR3(0, -1, 0);
+                Up = D3DXVECTOR3(0, 0, 1);
+                break;
+            case CUBE_SIDE_POS_Z:
+                FaceDirection = D3DXVECTOR3(0, 0, 1);
+                break;
+            case CUBE_SIDE_NEG_Z:
+                FaceDirection = D3DXVECTOR3(0, 0, -1);
+                break;
+        }
+
+        // Build a lookat matrix with center of projection = m_LightCenterView
+        D3DXVECTOR3 Pos = D3DXVECTOR3(0, .3f, 0);
+        D3DXVECTOR3 Lookat = Pos + FaceDirection;
+
+        D3DXMatrixLookAtLH(&LightView, &Pos, &Lookat, &Up);
+
+        D3DXMATRIX WorldToLightView;
+        D3DXMatrixMultiply(&WorldToLightView, &LightWorld, &LightView);
+
+        // Build a perspective projection matrix for the current point light sample
+        D3DXMATRIX LightProj;
+        float FrustrumScale = .05f;
+        float FrustumLeft = -FrustrumScale;
+        float FrustumRight = FrustrumScale;
+        float FrustumBottom = -FrustrumScale;
+        float FrustumTop = FrustrumScale;
+        float FrustumZNear = FrustrumScale;
+        float FrustumZFar = 32.0f;
+        D3DXMatrixPerspectiveOffCenterLH(&LightProj, FrustumLeft, FrustumRight, FrustumBottom, FrustumTop, FrustumZNear, FrustumZFar);
+
+        // For the shadow-map generation vertex shader
+        D3DXMATRIX WorldToLightClip;
+        D3DXMatrixMultiply(&WorldToLightClip, &WorldToLightView, &LightProj);
+
+        ///////////////////////////////////////////////////////////
+
+        // Update eye stuff
+        D3DXMATRIX EyeViewToLightView;
+        D3DXMatrixMultiply(&EyeViewToLightView, &m_WorldToEyeViewI, &WorldToLightView);
+
+        D3DXMATRIX EyeViewToLightClip;
+        D3DXMatrixMultiply(&EyeViewToLightClip, &EyeViewToLightView, &LightProj);
+
+        // Scale matrix to go from post-perspective space into texture space ([0,1]^2)
+        D3DXMATRIX Clip2Tex = D3DXMATRIX(
+            0.5, 0, 0, 0,
+            0, -0.5, 0, 0,
+            0, 0, 1, 0,
+            0.5, 0.5, 0, 1);
+        D3DXMATRIX EyeViewToLightTex;
+        D3DXMatrixMultiply(&EyeViewToLightTex, &EyeViewToLightClip, &Clip2Tex);
+
+        // Update constant buffer
+        memcpy(&m_ShadowMapCB.CBData.WorldToLightClip, &WorldToLightClip, sizeof(D3DXMATRIX));
+        memcpy(&m_GlobalCB.CBData.EyeViewToLightTex[LightIndex], &EyeViewToLightTex, sizeof(D3DXMATRIX));
+        m_GlobalCB.CBData.LightZNear = FrustumZNear;
+        m_GlobalCB.CBData.LightZFar = FrustumZFar;
     }
 
     // Compute the matrices for rendering from the current light's point of view

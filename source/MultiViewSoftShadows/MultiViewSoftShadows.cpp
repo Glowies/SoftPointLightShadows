@@ -374,8 +374,8 @@ HRESULT CALLBACK OnD3D11CreateDevice( ID3D11Device* pd3dDevice, const DXGI_SURFA
     g_Camera.SetViewParams(&EyePos, &Lookat);
     g_Camera.SetRadius(1.7f, 0.001f, 4.0f);
 
-    D3DXVECTOR3 LightPos = D3DXVECTOR3(3.57088f, 6.989f, -5.19698f);
-    D3DXVECTOR3 LightLookat = D3DXVECTOR3(0,0,-0.4f);
+    D3DXVECTOR3 LightPos = D3DXVECTOR3(0, 1.1f, 0);
+    D3DXVECTOR3 LightLookat = D3DXVECTOR3(0, 0, 0);
     g_LCamera.SetViewParams(&LightPos, &LightLookat);
 
     return S_OK;

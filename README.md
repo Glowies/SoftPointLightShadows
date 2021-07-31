@@ -5,3 +5,4 @@
 4- Update Scene to create and release SceneShadowCubemap resources
 5- Copy MVSS_ShadowMapVisualization.hlsl to ShadowCubemapVisualization.hlsl
 6- Update SceneShaders to load and store shaders from ShadowCubemapVisualization.hlsl
+7- Modify VisShadowCubemapPS in ShadowCubemapVisualiztion.hlsl to visualize a cubemap

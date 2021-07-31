@@ -89,6 +89,6 @@ float4 VisShadowCubemapPS(PostProc_VSOut IN) : SV_TARGET
         }
     }
 
-    z = (ZClipToZEye(z) - g_LightZNear) / (g_LightZFar - g_LightZNear);
-    return z * 10;
+    //z = (ZClipToZEye(z) - g_LightZNear) / (g_LightZFar - g_LightZNear);
+    return z;
 }
