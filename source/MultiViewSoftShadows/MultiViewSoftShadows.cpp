@@ -39,6 +39,8 @@ UINT g_NumMeshes = 2;
 bool g_ShowHelp = false;
 bool g_ShowUI = true;
 
+D3DXVECTOR3 g_PointLightPos = D3DXVECTOR3(0, .5f, 0);
+
 #define ZNEAR 0.1f
 #define ZFAR 100.0f
 
@@ -220,6 +222,15 @@ void CALLBACK OnFrameMove( double fTime, float fElapsedTime, void* pUserContext 
     g_LCamera.FrameMove(fElapsedTime);
     g_Scene.SetLightCamera(g_LCamera);
     g_Scene.SetMainCamera(g_Camera);
+
+#if defined(USE_POINT_LIGHT)
+    g_PointLightPos.x = .4f * cos(fTime/2);
+    g_PointLightPos.z = .4f * sin(fTime/2);
+    g_PointLightPos.y = .8f + .5f * sin(fTime);
+
+    g_Scene.UpdatePointLightPos(g_PointLightPos);
+#endif
+
 }
 
 //--------------------------------------------------------------------------------------
@@ -244,6 +255,10 @@ void RenderText(double ShadowMapRenderTimeMS, double EyeRenderTimeMs)
     const UINT NumTrisPerShadowMap = g_Scene.GetNumShadowCastingTriangles();
     StringCchPrintf(str, 100, L"Num Triangles / Shadow Map: %d (%dk total)", NumTrisPerShadowMap, NumTrisPerShadowMap*SHADOW_MAP_ARRAY_SIZE/1000);
     g_pTxtHelper->DrawTextLine( str );
+
+    const D3DXVECTOR3 *LightPos = &g_PointLightPos;
+    StringCchPrintf(str, 100, L"Light Position: (%f, %f, %f)", LightPos->x, LightPos->y, LightPos->z);
+    g_pTxtHelper->DrawTextLine(str);
 
     if (g_ShowHelp)
     {

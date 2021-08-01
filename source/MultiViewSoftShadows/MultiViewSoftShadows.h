@@ -1170,6 +1170,12 @@ public:
         pd3dImmediateContext->Draw(3, 0);
     }
 
+    // Update the position of the point light
+    void UpdatePointLightPos(D3DXVECTOR3& NewPos)
+    {
+        m_PointLightPos = NewPos;
+    }
+
 private:
     // Generate a shadow map by drawing geometry into the current depth-stencil view
     void RenderShadowMap(ID3D11DeviceContext* pd3dImmediateContext)
@@ -1193,7 +1199,6 @@ private:
         pd3dImmediateContext->PSSetShader(NULL, NULL, 0);
 
         m_Geometry.DrawCharacters(pd3dImmediateContext);
-        m_Geometry.DrawPlane(pd3dImmediateContext);
     }
 
     // Transform the vertices of BBox1 and extend BBox2 accordingly
@@ -1219,9 +1224,6 @@ private:
     // Compute the matrices for rendering from the current light's point of view
     void UpdateShadowCubemapFrustum(UINT LightIndex)
     {
-        D3DXMATRIX LightWorld = m_LightWorld;
-        D3DXMATRIX LightView = m_LightView;
-
         D3DXVECTOR3 FaceDirection = D3DXVECTOR3(0, 0, 0);
         D3DXVECTOR3 Up = D3DXVECTOR3(0, 1, 0);
 
@@ -1249,17 +1251,24 @@ private:
         }
 
         // Build a lookat matrix with center of projection = m_LightCenterView
-        D3DXVECTOR3 Pos = D3DXVECTOR3(0, .3f, 0);
+        D3DXVECTOR3 Pos = m_PointLightPos;
         D3DXVECTOR3 Lookat = Pos + FaceDirection;
 
+        D3DXMATRIX LightView;
         D3DXMatrixLookAtLH(&LightView, &Pos, &Lookat, &Up);
+
+        D3DXMATRIX LightWorld = D3DXMATRIX(
+            1, 0, 0, -Pos.x,
+            0, 1, 0, -Pos.y,
+            0, 0, 1, -Pos.z,
+            0, 0, 0, 1);
 
         D3DXMATRIX WorldToLightView;
         D3DXMatrixMultiply(&WorldToLightView, &LightWorld, &LightView);
 
         // Build a perspective projection matrix for the current point light sample
         D3DXMATRIX LightProj;
-        float FrustrumScale = .05f;
+        float FrustrumScale = .5f;
         float FrustumLeft = -FrustrumScale;
         float FrustumRight = FrustrumScale;
         float FrustumBottom = -FrustrumScale;
@@ -1384,6 +1393,7 @@ private:
     D3DXMATRIX              m_LightProj;
     D3DXMATRIX              m_WorldToEyeViewI;
     D3DXVECTOR3             m_LightCenterView;
+    D3DXVECTOR3             m_PointLightPos;
 
     D3D11_VIEWPORT          m_Viewport;
     SceneTextures           m_Textures;
